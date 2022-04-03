@@ -5,3 +5,10 @@
 /user_data/backtest_results/*
 /.idea/*
 
+/.idea/misc.xml
+/.idea/ft_userdata.iml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/misc.xml
+/.idea/vcs.xml
+/user_data/strategies/sample_strategy.py
+/user_data/tradesv3.sqlite

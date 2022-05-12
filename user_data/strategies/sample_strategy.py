@@ -2,8 +2,11 @@
 # flake8: noqa: F401
 # isort: skip_file
 # --- Do not remove these libs ---
+from datetime import datetime, timedelta, timezone
+
 import numpy as np  # noqa
 import pandas as pd  # noqa
+from freqtrade.persistence import Trade
 from pandas import DataFrame
 
 from freqtrade.strategy import (BooleanParameter, CategoricalParameter, DecimalParameter,
@@ -63,7 +66,7 @@ class SampleStrategy(IStrategy):
     timeframe = '5m'
 
     # Run "populate_indicators()" only for new candle.
-    process_only_new_candles = False
+    process_only_new_candles = False  #Enbable for tick even
 
     # These values can be overridden in the "ask_strategy" section in the config.
     use_sell_signal = True
@@ -103,6 +106,15 @@ class SampleStrategy(IStrategy):
         }
     }
 
+    #For buy exit event on each candle
+    def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+                    current_profit: float, **kwargs):
+        print("------------------DEBUG------------------")
+        print(current_time, trade, current_profit)
+        print(trade.close_profit)
+
+        return None
+
     def informative_pairs(self):
         """
         Define additional, informative pair/interval combinations to be cached from the exchange.
@@ -130,7 +142,6 @@ class SampleStrategy(IStrategy):
 
         # Momentum Indicators
         # ------------------------------------
-
         # ADX
         dataframe['adx'] = ta.ADX(dataframe)
 
@@ -171,7 +182,7 @@ class SampleStrategy(IStrategy):
         # dataframe['cci'] = ta.CCI(dataframe)
 
         # RSI
-        dataframe['rsi'] = ta.RSI(dataframe)
+        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=7)
 
         # # Inverse Fisher transform on RSI: values [-1.0, 1.0] (https://goo.gl/2JGGoy)
         # rsi = 0.1 * (dataframe['rsi'] - 50)
@@ -344,13 +355,15 @@ class SampleStrategy(IStrategy):
         :param metadata: Additional information, like the currently traded pair
         :return: DataFrame with buy column
         """
+
         dataframe.loc[
             (
                 # Signal: RSI crosses above 30
-                (qtpylib.crossed_above(dataframe['rsi'], self.buy_rsi.value)) &
-                (dataframe['tema'] <= dataframe['bb_middleband']) &  # Guard: tema below BB middle
-                (dataframe['tema'] > dataframe['tema'].shift(1)) &  # Guard: tema is raising
-                (dataframe['volume'] > 0)  # Make sure Volume is not 0
+                (qtpylib.crossed_above(dataframe['rsi'], self.buy_rsi.value))
+                # &
+                # (dataframe['tema'] <= dataframe['bb_middleband']) &  # Guard: tema below BB middle
+                # (dataframe['tema'] > dataframe['tema'].shift(1)) &  # Guard: tema is raising
+                # (dataframe['volume'] > 0)  # Make sure Volume is not 0
             ),
             'buy'] = 1
 
@@ -366,10 +379,11 @@ class SampleStrategy(IStrategy):
         dataframe.loc[
             (
                 # Signal: RSI crosses above 70
-                (qtpylib.crossed_above(dataframe['rsi'], self.sell_rsi.value)) &
-                (dataframe['tema'] > dataframe['bb_middleband']) &  # Guard: tema above BB middle
-                (dataframe['tema'] < dataframe['tema'].shift(1)) &  # Guard: tema is falling
-                (dataframe['volume'] > 0)  # Make sure Volume is not 0
+                (qtpylib.crossed_above(dataframe['rsi'], self.sell_rsi.value))
+                # &
+                # (dataframe['tema'] > dataframe['bb_middleband']) &  # Guard: tema above BB middle
+                # (dataframe['tema'] < dataframe['tema'].shift(1)) &  # Guard: tema is falling
+                # (dataframe['volume'] > 0)  # Make sure Volume is not 0
             ),
             'sell'] = 1
         return dataframe
